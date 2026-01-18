@@ -40,7 +40,7 @@
         .tile {
             width: 100px;
             height: 100px;
-            background-image: url('https://www.instagram.com/p/DKdIFbEOuXiCJC0g5RchzWSxgncX4gBoh6VN0M0/?img_index=1');
+            background-image: url('https://github.com/coelhosite/r-a-r-a/blob/main/Captura%20de%20tela_17-1-2026_231030_www.instagram.com.jpeg');
             background-size: 300px 300px;
             filter: grayscale(1) blur(5px) brightness(0.4);
             transition: all 1s ease;
