@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para o Meu Amor ❤️</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --rose: #ff85a1;
+            --soft-bg: #fff5f7;
+            --text: #5a5a5a;
+        }
+
+        body {
+            background: var(--soft-bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Container do Quebra-cabeça */
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 4px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(255, 133, 161, 0.2);
+            margin: 20px 0;
+        }
+
+        .tile {
+            width: 100px;
+            height: 100px;
+            background-image: url('https://www.instagram.com/p/DKdIFbEOuXiCJC0g5RchzWSxgncX4gBoh6VN0M0/?img_index=1');
+            background-size: 300px 300px;
+            filter: grayscale(1) blur(5px) brightness(0.4);
+            transition: all 1s ease;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .tile.unlocked {
+            filter: grayscale(0) blur(0) brightness(1);
+        }
+
+        .tile.locked::after {
+            content: '❤️';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.3;
+        }
+
+        /* Interface */
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+
+        .note-of-the-day {
+            font-style: italic;
+            color: var(--rose);
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            line-height: 1.4;
+        }
+
+        input {
+            width: 80%;
+            padding: 12px;
+            border: 2px solid #ffe3e8;
+            border-radius: 12px;
+            outline: none;
+            text-align: center;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--rose); }
+
+        .btn {
+            background: var(--rose);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        .status {
+            font-size: 12px;
+            margin-top: 15px;
+            opacity: 0.6;
+        }
+
+        #wait-screen { display: none; }
+    </style>
+</head>
+<body>
+
+    <h2 style="font-weight: 300;">Nosso Jardim Secreto</h2>
+    
+    <div class="note-of-the-day" id="frase-bom-dia">
+        "Carregando uma dose de amor..."
+    </div>
+
+    <div class="puzzle-grid" id="grid">
+        </div>
+
+    <div class="card">
+        <div id="play-screen">
+            <p id="pergunta" style="font-weight: 600;">Aguardando sinal...</p>
+            <input type="text" id="resposta" placeholder="A chave é...">
+            <button class="btn" onclick="verificar()">Revelar Peça</button>
+        </div>
+
+        <div id="wait-screen">
+            <p>🌟 Você já colheu o carinho de hoje!</p>
+            <p style="font-size: 0.9em; color: #999;">O próximo segredo floresce amanhã.</p>
+        </div>
+
+        <div class="status">
+            Penas Acumuladas: <span id="penas-count" style="color:red">0</span> 🪶
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCVvR7zIOr30JG-M-0vkQRqZT6DKHPrHuo",
+            authDomain: "projeto-specimen.firebaseapp.com", 
+            projectId: "projeto-specimen",
+            storageBucket: "projeto-specimen.firebasestorage.app",
+            messagingSenderId: "527660235211",
+            appId: "1:527660235211:web:9f29491bb713561f50de4e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const userRef = doc(db, "progresso", "usuario_unico");
+
+        // --- CONFIGURAÇÃO DOS 9 DIAS ---
+        const CONTEUDO = [
+            { q: "Qual o nome do nosso 'lugar'?", a: "parque", msg: "Bom dia, meu sol! Mal posso esperar para ver seu sorriso hoje." },
+            { q: "Qual a data do nosso primeiro beijo? (DD/MM)", a: "12/05", msg: "Você é a melhor parte do meu dia, sabia?" },
+            { q: "O que eu disse que mais amo em você?", a: "olhar", msg: "Cada pedacinho de você é um presente para mim." },
+            // Adicione mais 6 aqui seguindo o padrão...
+        ];
+
+        // 1. Criar o Grid Visual
+        const grid = document.getElementById('grid');
+        for(let i=0; i<9; i++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile locked';
+            tile.id = `tile-${i}`;
+            tile.style.backgroundPosition = `${-(i % 3) * 100}px ${-Math.floor(i / 3) * 100}px`;
+            grid.appendChild(tile);
+        }
+
+        // 2. Inicializar ou Escutar o Banco
+        onSnapshot(userRef, async (snap) => {
+            if (!snap.exists()) {
+                await setDoc(userRef, { faseAtual: 0, penas: 0, ultimaConclusao: "" });
+                return;
+            }
+            const data = snap.data();
+            renderizar(data);
+        });
+
+        function renderizar(data) {
+            const fase = data.faseAtual;
+            document.getElementById('penas-count').innerText = data.penas;
+
+            // Desbloquear peças
+            for(let i=0; i<9; i++) {
+                if(i < fase) {
+                    document.getElementById(`tile-${i}`).className = 'tile unlocked';
+                }
+            }
+
+            if(fase >= 9) {
+                document.getElementById('play-screen').innerHTML = "<h3>Você é o meu Ser Raro ❤️</h3>";
+                document.getElementById('frase-bom-dia').innerText = "Missão Cumprida. Eu te amo para sempre.";
+                confetti();
+                return;
+            }
+
+            // Lógica de Espera (24h)
+            const hoje = new Date().toLocaleDateString();
+            if(data.ultimaConclusao === hoje) {
+                document.getElementById('play-screen').style.display = 'none';
+                document.getElementById('wait-screen').style.display = 'block';
+                document.getElementById('frase-bom-dia').innerText = "O segredo de hoje já foi revelado...";
+            } else {
+                document.getElementById('play-screen').style.display = 'block';
+                document.getElementById('wait-screen').style.display = 'none';
+                document.getElementById('pergunta').innerText = CONTEUDO[fase].q;
+                document.getElementById('frase-bom-dia').innerText = CONTEUDO[fase].msg;
+            }
+        }
+
+        window.verificar = async () => {
+            const resp = document.getElementById('resposta').value.trim().toLowerCase();
+            const snap = await getDoc(userRef);
+            const data = snap.data();
+            const fase = data.faseAtual;
+
+            if(resp === CONTEUDO[fase].a.toLowerCase()) {
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                await updateDoc(userRef, { 
+                    faseAtual: increment(1),
+                    ultimaConclusao: new Date().toLocaleDateString()
+                });
+                document.getElementById('resposta').value = "";
+            } else {
+                await updateDoc(userRef, { penas: increment(1) });
+                alert("Ops! Resposta errada... tente novamente com carinho. ❤️");
+            }
+        };
+    </script>
+</body>
+</html>
