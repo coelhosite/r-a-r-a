@@ -16,7 +16,7 @@
             background: var(--soft-bg);
             color: var(--text);
             font-family: 'Segoe UI', Roboto, sans-serif;
-            display: flex;
+            display: flex; 
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
@@ -24,7 +24,6 @@
             padding: 20px;
         }
 
-        /* Container do Quebra-cabeça */
         .puzzle-grid {
             display: grid;
             grid-template-columns: repeat(3, 100px);
@@ -40,10 +39,11 @@
         .tile {
             width: 100px;
             height: 100px;
-            background-image: url('https://github.com/coelhosite/r-a-r-a/blob/main/Captura%20de%20tela_17-1-2026_231030_www.instagram.com.jpeg');
+            /* LINK CORRIGIDO ABAIXO */
+            background-image: url('https://raw.githubusercontent.com/coelhosite/r-a-r-a/main/rara.jpeg');
             background-size: 300px 300px;
-            filter: grayscale(1) blur(5px) brightness(0.4);
-            transition: all 1s ease;
+            filter: grayscale(1) blur(8px) brightness(0.3);
+            transition: all 1.2s ease;
             border-radius: 4px;
             position: relative;
         }
@@ -60,7 +60,6 @@
             opacity: 0.3;
         }
 
-        /* Interface */
         .card {
             background: white;
             padding: 30px;
@@ -87,10 +86,7 @@
             outline: none;
             text-align: center;
             font-size: 16px;
-            transition: 0.3s;
         }
-
-        input:focus { border-color: var(--rose); }
 
         .btn {
             background: var(--rose);
@@ -102,10 +98,7 @@
             cursor: pointer;
             font-weight: bold;
             width: 100%;
-            transition: transform 0.2s;
         }
-
-        .btn:active { transform: scale(0.98); }
 
         .status {
             font-size: 12px;
@@ -124,8 +117,7 @@
         "Carregando uma dose de amor..."
     </div>
 
-    <div class="puzzle-grid" id="grid">
-        </div>
+    <div class="puzzle-grid" id="grid"></div>
 
     <div class="card">
         <div id="play-screen">
@@ -140,7 +132,7 @@
         </div>
 
         <div class="status">
-            Penas Acumuladas: <span id="penas-count" style="color:red">0</span> 🪶
+            Penas: <span id="penas-count" style="color:red">0</span> 🪶
         </div>
     </div>
 
@@ -161,15 +153,18 @@
         const db = getFirestore(app);
         const userRef = doc(db, "progresso", "usuario_unico");
 
-        // --- CONFIGURAÇÃO DOS 9 DIAS ---
         const CONTEUDO = [
             { q: "Qual o nome do nosso 'lugar'?", a: "parque", msg: "Bom dia, meu sol! Mal posso esperar para ver seu sorriso hoje." },
             { q: "Qual a data do nosso primeiro beijo? (DD/MM)", a: "12/05", msg: "Você é a melhor parte do meu dia, sabia?" },
             { q: "O que eu disse que mais amo em você?", a: "olhar", msg: "Cada pedacinho de você é um presente para mim." },
-            // Adicione mais 6 aqui seguindo o padrão...
+            { q: "Qual a nossa música favorita de ouvir no carro?", a: "nome_aqui", msg: "Acordar pensando em você é minha rotina favorita." },
+            { q: "Onde foi nossa primeira viagem juntos?", a: "lugar_aqui", msg: "O mundo é mais bonito quando estou ao seu lado." },
+            { q: "Qual o apelido que só eu te chamo?", a: "apelido_aqui", msg: "Você é o meu porto seguro." },
+            { q: "Qual a cor da roupa que você usou no nosso primeiro encontro?", a: "cor_aqui", msg: "Lembro de cada detalhe nosso como se fosse hoje." },
+            { q: "O que eu mais gosto que você cozinhe?", a: "comida_aqui", msg: "Minha vida tem mais sabor com você." },
+            { q: "A última chave: O que eu pretendo te dar para sempre?", a: "amor", msg: "Você completou o jardim. Agora veja quem é a flor mais rara." }
         ];
 
-        // 1. Criar o Grid Visual
         const grid = document.getElementById('grid');
         for(let i=0; i<9; i++) {
             const tile = document.createElement('div');
@@ -179,35 +174,29 @@
             grid.appendChild(tile);
         }
 
-        // 2. Inicializar ou Escutar o Banco
         onSnapshot(userRef, async (snap) => {
             if (!snap.exists()) {
                 await setDoc(userRef, { faseAtual: 0, penas: 0, ultimaConclusao: "" });
                 return;
             }
-            const data = snap.data();
-            renderizar(data);
+            renderizar(snap.data());
         });
 
         function renderizar(data) {
             const fase = data.faseAtual;
             document.getElementById('penas-count').innerText = data.penas;
 
-            // Desbloquear peças
             for(let i=0; i<9; i++) {
-                if(i < fase) {
-                    document.getElementById(`tile-${i}`).className = 'tile unlocked';
-                }
+                if(i < fase) document.getElementById(`tile-${i}`).className = 'tile unlocked';
             }
 
             if(fase >= 9) {
-                document.getElementById('play-screen').innerHTML = "<h3>Você é o meu Ser Raro ❤️</h3>";
-                document.getElementById('frase-bom-dia').innerText = "Missão Cumprida. Eu te amo para sempre.";
-                confetti();
+                document.getElementById('play-screen').innerHTML = "<h3>Você é a minha flor mais rara ❤️</h3>";
+                document.getElementById('frase-bom-dia').innerText = "O quebra-cabeça está completo, assim como eu com você.";
+                confetti({ particleCount: 200, spread: 90 });
                 return;
             }
 
-            // Lógica de Espera (24h)
             const hoje = new Date().toLocaleDateString();
             if(data.ultimaConclusao === hoje) {
                 document.getElementById('play-screen').style.display = 'none';
@@ -236,7 +225,7 @@
                 document.getElementById('resposta').value = "";
             } else {
                 await updateDoc(userRef, { penas: increment(1) });
-                alert("Ops! Resposta errada... tente novamente com carinho. ❤️");
+                alert("Ops! Resposta errada... tente novamente. ❤️");
             }
         };
     </script>
